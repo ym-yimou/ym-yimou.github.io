@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>星河追梦 · 音乐播放器</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', 'Poppins', system-ui, sans-serif;
+        }
+
+        body {
+            min-height: 100vh;
+            background: radial-gradient(ellipse at 40% 40%, #0b1120, #030614);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+        }
+
+        /* 星河粒子浮动效果 */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image: 
+                radial-gradient(2px 2px at 15px 60px, #fff, rgba(0,0,0,0)),
+                radial-gradient(2px 2px at 72px 430px, #b1d0ff, rgba(0,0,0,0)),
+                radial-gradient(3px 3px at 280px 120px, #e2f0ff, rgba(0,0,0,0)),
+                radial-gradient(1px 1px at 850px 320px, #fff, rgba(0,0,0,0)),
+                radial-gradient(4px 4px at 90% 20%, #7aa6ff, rgba(0,0,0,0)),
+                radial-gradient(2px 2px at 30% 70%, #b5d1ff, rgba(0,0,0,0)),
+                radial-gradient(3px 3px at 70% 85%, #d4e4ff, rgba(0,0,0,0)),
+                radial-gradient(2px 2px at 55% 40%, #fff, rgba(0,0,0,0));
+            background-repeat: repeat;
+            opacity: 0.35;
+            pointer-events: none;
+            animation: twinkle 6s infinite alternate;
+        }
+
+        @keyframes twinkle {
+            0% { opacity: 0.25; }
+            100% { opacity: 0.55; }
+        }
+
+        /* 主卡片 */
+        .player {
+            width: 420px;
+            max-width: 100%;
+            background: rgba(18, 26, 40, 0.65);
+            backdrop-filter: blur(16px) saturate(180%);
+            -webkit-backdrop-filter: blur(16px) saturate(180%);
+            border: 1px solid rgba(120, 160, 255, 0.25);
+            border-radius: 48px;
+            box-shadow: 0 30px 50px -15px rgba(0, 0, 0, 0.8),
+                        0 0 0 1px rgba(168, 192, 255, 0.2) inset,
+                        0 0 30px rgba(70, 130, 255, 0.3);
+            padding: 28px 24px 32px;
+            transition: box-shadow 0.3s;
+            color: #f0f3ff;
+        }
+
+        .player:hover {
+            box-shadow: 0 35px 60px -15px #000d1f, 0 0 0 1.5px #7aa9ff4d inset;
+        }
+
+        /* 唱片封面 */
+        .artwork {
+            position: relative;
+            display: flex;
+            justify-content: center;
+            margin-bottom: 24px;
+        }
+
+        .vinyl {
+            width: 220px;
+            height: 220px;
+            border-radius: 50%;
+            background: linear-gradient(145deg, #1b2b41, #0b1422);
+            box-shadow: 0 20px 30px -10px black, 0 0 0 6px #2e3f5a inset, 0 0 0 10px #0d1727 inset;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            animation: spin 20s linear infinite;
+            animation-play-state: paused;
+        }
+
+        .vinyl.playing {
+            animation-play-state: running;
+        }
+
+        .inner-label {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            background: radial-gradient(circle at 30% 30%, #7aa6d0, #0f2842);
+            border: 3px solid #c9dfff;
+            box-shadow: 0 0 15px #6d94ff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            font-weight: 700;
+            color: white;
+            text-shadow: 0 0 10px cyan;
+            letter-spacing: 2px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* 歌名信息 */
+        .track-info {
+            text-align: center;
+            margin: 20px 0 14px;
+        }
+
+        .track-name {
+            font-size: 28px;
+            font-weight: 600;
+            background: linear-gradient(to right, #e0eaff, #b2d9ff);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            letter-spacing: 2px;
+            text-shadow: 0 0 8px #3f78ff;
+            margin-bottom: 4px;
+        }
+
+        .artist {
+            font-size: 16px;
+            color: #a2bce6;
+            opacity: 0.8;
+            letter-spacing: 1.5px;
+            font-weight: 300;
+        }
+
+        /* 进度条 */
+        .progress-area {
+            margin: 24px 0 12px;
+        }
+
+        .time {
+            display: flex;
+            justify-content: space-between;
+            font-size: 13px;
+            color: #b4caf0;
+            letter-spacing: 0.5px;
+            margin-bottom: 6px;
+        }
+
+        .progress-bar {
+            height: 6px;
+            background: rgba(20, 35, 70, 0.7);
+            border-radius: 20px;
+            border: 1px solid #2f4980;
+            cursor: pointer;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .progress-fill {
+            width: 0%;
+            height: 100%;
+            background: linear-gradient(90deg, #83b0ff, #d2a2ff);
+            border-radius: 20px;
+            box-shadow: 0 0 15px #729bff;
+            transition: width 0.1s linear;
+        }
+
+        /* 控制按钮 */
+        .controls {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 22px;
+            margin: 24px 0 28px;
+        }
+
+        .ctrl-btn {
+            background: rgba(18, 30, 55, 0.7);
+            border: 1.5px solid #4370b3;
+            color: #e5efff;
+            width: 52px;
+            height: 52px;
+            border-radius: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            cursor: pointer;
+            backdrop-filter: blur(5px);
+            transition: 0.2s ease;
+            box-shadow: 0 5px 12px #00000055;
+        }
+
+        .ctrl-btn:hover {
+            background: #25487e;
+            border-color: #86b1ff;
+            color: white;
+            transform: scale(1.05);
+            box-shadow: 0 0 18px #3f93ff;
+        }
+
+        .ctrl-btn:active {
+            transform: scale(0.98);
+        }
+
+        .ctrl-btn.play-pause {
+            width: 68px;
+            height: 68px;
+            background: #1f3e6b;
+            border-color: #acd0ff;
+            font-size: 40px;
+            box-shadow: 0 0 25px #4d8cff;
+        }
+
+        /* 歌词面板 */
+        .lyrics-panel {
+            background: rgba(10, 18, 34, 0.6);
+            border-radius: 30px;
+            padding: 14px 18px;
+            border: 1px solid #3560a0;
+            backdrop-filter: blur(6px);
+            text-align: center;
+            margin-top: 15px;
+        }
+
+        .lyric-text {
+            font-size: 16px;
+            font-style: italic;
+            color: #d3e2ff;
+            min-height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            line-height: 1.5;
+            text-shadow: 0 0 10px #2680eb;
+            transition: opacity 0.4s;
+        }
+
+        .wave {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+            margin-top: 8px;
+            height: 24px;
+        }
+
+        .wave span {
+            width: 5px;
+            height: 16px;
+            background: linear-gradient(to top, #6d9eff, #c0dbff);
+            border-radius: 10px;
+            animation: wave 1.2s infinite ease;
+            opacity: 0.6;
+        }
+
+        .wave span:nth-child(2) { animation-delay: 0.2s; height: 22px; }
+        .wave span:nth-child(3) { animation-delay: 0.4s; height: 28px; }
+        .wave span:nth-child(4) { animation-delay: 0.6s; height: 22px; }
+        .wave span:nth-child(5) { animation-delay: 0.8s; height: 16px; }
+
+        @keyframes wave {
+            0%, 100% { transform: scaleY(0.8); opacity: 0.4; }
+            50% { transform: scaleY(1.6); opacity: 1; }
+        }
+
+        /* 音频元素隐藏 */
+        #audio-player {
+            display: none;
+        }
+
+        .autoplay-note {
+            font-size: 11px;
+            color: #7191c0;
+            text-align: center;
+            margin-top: 15px;
+            border-top: 1px dashed #28508f;
+            padding-top: 12px;
+            opacity: 0.8;
+        }
+    </style>
+</head>
+<body>
+    <div class="player">
+        <!-- 唱片封面 -->
+        <div class="artwork">
+            <div class="vinyl" id="vinylDisc">
+                <div class="inner-label">
+                    <span>✨</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 歌曲信息 -->
+        <div class="track-info">
+            <div class="track-name">星河追梦</div>
+            <div class="artist">星梦轨迹 · 纯享</div>
+        </div>
+
+        <!-- 进度条 -->
+        <div class="progress-area">
+            <div class="time">
+                <span id="current-time">0:00</span>
+                <span id="duration-time">0:00</span>
+            </div>
+            <div class="progress-bar" id="progress-bar">
+                <div class="progress-fill" id="progress-fill"></div>
+            </div>
+        </div>
+
+        <!-- 控制按钮 -->
+        <div class="controls">
+            <div class="ctrl-btn" id="prev-btn" title="上一首">⏮</div>
+            <div class="ctrl-btn play-pause" id="play-pause-btn" title="播放/暂停">▶</div>
+            <div class="ctrl-btn" id="next-btn" title="下一首">⏭</div>
+        </div>
+
+        <!-- 动态歌词区 -->
+        <div class="lyrics-panel">
+            <div class="lyric-text" id="lyric-display">
+                星河在倒转，我们追着梦...
+                <div class="wave" id="wave-box">
+                    <span></span><span></span><span></span><span></span><span></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 自动播放提示 -->
+        <div class="autoplay-note" id="autoplay-note">
+            🚀 正在加载音乐...
+        </div>
+    </div>
+
+    <!-- 音频元素 -->
+    <audio id="audio-player" preload="auto" loop></audio>
+
+    <script>
+        (function() {
+            // 获取DOM元素
+            const audio = document.getElementById('audio-player');
+            const vinyl = document.getElementById('vinylDisc');
+            const playPauseBtn = document.getElementById('play-pause-btn');
+            const prevBtn = document.getElementById('prev-btn');
+            const nextBtn = document.getElementById('next-btn');
+            const progressFill = document.getElementById('progress-fill');
+            const progressBar = document.getElementById('progress-bar');
+            const currentTimeSpan = document.getElementById('current-time');
+            const durationSpan = document.getElementById('duration-time');
+            const lyricDisplay = document.getElementById('lyric-display');
+            const waveBox = document.getElementById('wave-box');
+            const autoplayNote = document.getElementById('autoplay-note');
+
+            // 设置音频源 - 使用您提供的路径
+            const audioUrl = '136996.zyz/xhzm.mp3';
+            audio.src = audioUrl;
+
+            // 歌词库 (根据歌曲意境)
+            const lyrics = [
+                "✨ 星辉洒落 在梦的尽头",
+                "🌌 逆着光 追赶银河的湍流",
+                "🚀 飞船划过 寂静的宇宙",
+                "💫 你的眼眸 是星云的入口",
+                "🎵 星河追梦 不回头",
+                "🌠 每一帧 都是永恒的温柔",
+                "⭐ 穿越光年 只为这一次相遇",
+                "🌟 在星河深处 写下我们的故事"
+            ];
+            let lyricIndex = 0;
+            let lastLyricUpdateTime = 0;
+
+            // 播放状态
+            let isPlaying = false;
+
+            // 格式化时间
+            function formatTime(seconds) {
+                if (isNaN(seconds) || seconds === Infinity || seconds < 0) return '0:00';
+                const m = Math.floor(seconds / 60);
+                const s = Math.floor(seconds % 60);
+                return `${m}:${s < 10 ? '0' : ''}${s}`;
+            }
+
+            // 更新进度条和时间
+            function updateProgress() {
+                if (!audio.duration) return;
+                
+                const current = audio.currentTime;
+                const duration = audio.duration;
+                
+                // 更新进度条
+                const percent = (current / duration) * 100;
+                progressFill.style.width = percent + '%';
+                
+                // 更新时间显示
+                currentTimeSpan.textContent = formatTime(current);
+                durationSpan.textContent = formatTime(duration);
+                
+                // 根据时间更新歌词 (每15秒切换一句)
+                const lyricChangeInterval = 15; // 秒
+                const currentLyricIndex = Math.floor(current / lyricChangeInterval) % lyrics.length;
+                if (currentLyricIndex !== lyricIndex) {
+                    lyricIndex = currentLyricIndex;
+                    lyricDisplay.innerHTML = `${lyrics[lyricIndex]} <div class="wave" id="wave-box">${waveBox.innerHTML}</div>`;
+                }
+            }
+
+            // 音频加载完成
+            audio.addEventListener('loadedmetadata', () => {
+                durationSpan.textContent = formatTime(audio.duration);
+                autoplayNote.innerHTML = '🎵 星河追梦 · 点击播放';
+            });
+
+            // 音频加载失败
+            audio.addEventListener('error', (e) => {
+                console.error('音频加载失败:', e);
+                autoplayNote.innerHTML = '⚠️ 音频加载失败，请检查路径: ' + audioUrl;
+                autoplayNote.style.color = '#ff9999';
+            });
+
+            // 时间更新
+            audio.addEventListener('timeupdate', updateProgress);
+
+            // 播放结束（由于loop属性，实际上不会触发，但保留）
+            audio.addEventListener('ended', () => {
+                // 如果是单曲循环，不需要特殊处理
+            });
+
+            // 播放状态变化
+            audio.addEventListener('play', () => {
+                isPlaying = true;
+                playPauseBtn.innerHTML = '⏸';
+                vinyl.classList.add('playing');
+                waveBox.style.display = 'flex';
+                autoplayNote.innerHTML = '🎵 正在播放：星河追梦';
+            });
+
+            audio.addEventListener('pause', () => {
+                isPlaying = false;
+                playPauseBtn.innerHTML = '▶';
+                vinyl.classList.remove('playing');
+                waveBox.style.display = 'none';
+                autoplayNote.innerHTML = '⏸ 已暂停';
+            });
+
+            // 点击播放/暂停
+            playPauseBtn.addEventListener('click', () => {
+                if (audio.paused) {
+                    // 尝试播放
+                    audio.play().catch(error => {
+                        console.error('播放失败:', error);
+                        autoplayNote.innerHTML = '❌ 播放失败，请检查音频文件';
+                    });
+                } else {
+                    audio.pause();
+                }
+            });
+
+            // 上一首（重置到开头）
+            prevBtn.addEventListener('click', () => {
+                audio.currentTime = 0;
+                lyricIndex = 0;
+                lyricDisplay.innerHTML = `${lyrics[0]} <div class="wave" id="wave-box">${waveBox.innerHTML}</div>`;
+            });
+
+            // 下一首（重置到开头，也可以模拟下一首，但只有一首歌）
+            nextBtn.addEventListener('click', () => {
+                audio.currentTime = 0;
+                lyricIndex = 0;
+                lyricDisplay.innerHTML = `${lyrics[0]} <div class="wave" id="wave-box">${waveBox.innerHTML}</div>`;
+            });
+
+            // 点击进度条跳转
+            progressBar.addEventListener('click', (e) => {
+                const rect = progressBar.getBoundingClientRect();
+                const clickX = e.clientX - rect.left;
+                const percent = clickX / rect.width;
+                audio.currentTime = percent * audio.duration;
+            });
+
+            // 自动播放尝试（一进入页面就尝试播放）
+            window.addEventListener('load', () => {
+                // 设置初始歌词
+                lyricDisplay.innerHTML = `${lyrics[0]} <div class="wave" id="wave-box">${waveBox.innerHTML}</div>`;
+                
+                // 尝试自动播放
+                setTimeout(() => {
+                    audio.play().then(() => {
+                        autoplayNote.innerHTML = '🎵 自动播放成功：星河追梦';
+                    }).catch(error => {
+                        console.log('自动播放被阻止，等待用户交互:', error);
+                        autoplayNote.innerHTML = '🎵 点击播放按钮开始欣赏《星河追梦》';
+                        
+                        // 提示用户点击任意位置播放（可选）
+                        const clickToPlay = () => {
+                            audio.play().catch(e => console.log('用户交互播放失败:', e));
+                            document.removeEventListener('click', clickToPlay);
+                            document.removeEventListener('touchstart', clickToPlay);
+                        };
+                        document.addEventListener('click', clickToPlay);
+                        document.addEventListener('touchstart', clickToPlay);
+                    });
+                }, 500); // 延迟500ms确保音频元素准备好
+            });
+
+            // 处理音频加载进度
+            audio.addEventListener('progress', () => {
+                // 可以添加缓冲进度显示，但为了简洁，暂不实现
+            });
+
+            // 可选：显示加载状态
+            audio.addEventListener('waiting', () => {
+                autoplayNote.innerHTML = '⏳ 缓冲中...';
+            });
+
+            audio.addEventListener('canplay', () => {
+                if (!audio.paused) {
+                    autoplayNote.innerHTML = '🎵 正在播放：星河追梦';
+                }
+            });
+        })();
+    </script>
+</body>
+</html>
