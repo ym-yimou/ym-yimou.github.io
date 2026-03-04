@@ -1,521 +1,707 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>星河追梦 · 音乐播放器</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Segoe UI', 'Poppins', system-ui, sans-serif;
+    <title>三角洲转盘抽奖</title>
+    <!-- Tailwind CSS v3 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome -->
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js"></script>
+    <!-- GSAP 动画库 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#3b82f6',
+                        secondary: '#60a5fa',
+                        accent: '#2563eb',
+                        dark: {
+                            primary: '#1e40af',
+                            secondary: '#3b82f6',
+                            background: '#0f172a',
+                            card: '#1e293b'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                    animation: {
+                        'spin-slow': 'spin 8s linear infinite',
+                    }
+                }
+            }
         }
-
-        body {
-            min-height: 100vh;
-            background: radial-gradient(ellipse at 40% 40%, #0b1120, #030614);
+    </script>
+    
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .text-shadow {
+                text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            }
+            .text-shadow-lg {
+                text-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            }
+            .glass {
+                background: rgba(255, 255, 255, 0.25);
+                backdrop-filter: blur(10px);
+                -webkit-backdrop-filter: blur(10px);
+                border: 1px solid rgba(255, 255, 255, 0.18);
+            }
+            .dark .glass {
+                background: rgba(30, 41, 59, 0.75);
+                border: 1px solid rgba(59, 130, 246, 0.18);
+            }
+            .wheel-shadow {
+                box-shadow: 0 0 0 10px rgba(59, 130, 246, 0.1),
+                            0 0 20px rgba(59, 130, 246, 0.2);
+            }
+            .dark .wheel-shadow {
+                box-shadow: 0 0 0 10px rgba(30, 64, 175, 0.1),
+                            0 0 20px rgba(30, 64, 175, 0.3);
+            }
+        }
+        
+        /* 抽奖按钮样式 */
+        .lottery-button-container {
             display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 1rem;
-        }
-
-        /* 星河粒子浮动效果 */
-        body::before {
-            content: '';
-            position: fixed;
-            inset: 0;
-            background-image: 
-                radial-gradient(2px 2px at 15px 60px, #fff, rgba(0,0,0,0)),
-                radial-gradient(2px 2px at 72px 430px, #b1d0ff, rgba(0,0,0,0)),
-                radial-gradient(3px 3px at 280px 120px, #e2f0ff, rgba(0,0,0,0)),
-                radial-gradient(1px 1px at 850px 320px, #fff, rgba(0,0,0,0)),
-                radial-gradient(4px 4px at 90% 20%, #7aa6ff, rgba(0,0,0,0)),
-                radial-gradient(2px 2px at 30% 70%, #b5d1ff, rgba(0,0,0,0)),
-                radial-gradient(3px 3px at 70% 85%, #d4e4ff, rgba(0,0,0,0)),
-                radial-gradient(2px 2px at 55% 40%, #fff, rgba(0,0,0,0));
-            background-repeat: repeat;
-            opacity: 0.35;
-            pointer-events: none;
-            animation: twinkle 6s infinite alternate;
-        }
-
-        @keyframes twinkle {
-            0% { opacity: 0.25; }
-            100% { opacity: 0.55; }
-        }
-
-        /* 主卡片 */
-        .player {
-            width: 420px;
-            max-width: 100%;
-            background: rgba(18, 26, 40, 0.65);
-            backdrop-filter: blur(16px) saturate(180%);
-            -webkit-backdrop-filter: blur(16px) saturate(180%);
-            border: 1px solid rgba(120, 160, 255, 0.25);
-            border-radius: 48px;
-            box-shadow: 0 30px 50px -15px rgba(0, 0, 0, 0.8),
-                        0 0 0 1px rgba(168, 192, 255, 0.2) inset,
-                        0 0 30px rgba(70, 130, 255, 0.3);
-            padding: 28px 24px 32px;
-            transition: box-shadow 0.3s;
-            color: #f0f3ff;
-        }
-
-        .player:hover {
-            box-shadow: 0 35px 60px -15px #000d1f, 0 0 0 1.5px #7aa9ff4d inset;
-        }
-
-        /* 唱片封面 */
-        .artwork {
-            position: relative;
-            display: flex;
-            justify-content: center;
-            margin-bottom: 24px;
-        }
-
-        .vinyl {
-            width: 220px;
-            height: 220px;
-            border-radius: 50%;
-            background: linear-gradient(145deg, #1b2b41, #0b1422);
-            box-shadow: 0 20px 30px -10px black, 0 0 0 6px #2e3f5a inset, 0 0 0 10px #0d1727 inset;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            position: relative;
-            animation: spin 20s linear infinite;
-            animation-play-state: paused;
-        }
-
-        .vinyl.playing {
-            animation-play-state: running;
-        }
-
-        .inner-label {
-            width: 100px;
-            height: 100px;
-            border-radius: 50%;
-            background: radial-gradient(circle at 30% 30%, #7aa6d0, #0f2842);
-            border: 3px solid #c9dfff;
-            box-shadow: 0 0 15px #6d94ff;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 28px;
-            font-weight: 700;
-            color: white;
-            text-shadow: 0 0 10px cyan;
-            letter-spacing: 2px;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        /* 歌名信息 */
-        .track-info {
-            text-align: center;
-            margin: 20px 0 14px;
-        }
-
-        .track-name {
-            font-size: 28px;
-            font-weight: 600;
-            background: linear-gradient(to right, #e0eaff, #b2d9ff);
-            -webkit-background-clip: text;
-            background-clip: text;
-            color: transparent;
-            letter-spacing: 2px;
-            text-shadow: 0 0 8px #3f78ff;
-            margin-bottom: 4px;
-        }
-
-        .artist {
-            font-size: 16px;
-            color: #a2bce6;
-            opacity: 0.8;
-            letter-spacing: 1.5px;
-            font-weight: 300;
-        }
-
-        /* 进度条 */
-        .progress-area {
-            margin: 24px 0 12px;
-        }
-
-        .time {
-            display: flex;
-            justify-content: space-between;
-            font-size: 13px;
-            color: #b4caf0;
-            letter-spacing: 0.5px;
-            margin-bottom: 6px;
-        }
-
-        .progress-bar {
-            height: 6px;
-            background: rgba(20, 35, 70, 0.7);
-            border-radius: 20px;
-            border: 1px solid #2f4980;
-            cursor: pointer;
-            overflow: hidden;
-            position: relative;
-        }
-
-        .progress-fill {
-            width: 0%;
-            height: 100%;
-            background: linear-gradient(90deg, #83b0ff, #d2a2ff);
-            border-radius: 20px;
-            box-shadow: 0 0 15px #729bff;
-            transition: width 0.1s linear;
-        }
-
-        /* 控制按钮 */
-        .controls {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 22px;
-            margin: 24px 0 28px;
-        }
-
-        .ctrl-btn {
-            background: rgba(18, 30, 55, 0.7);
-            border: 1.5px solid #4370b3;
-            color: #e5efff;
-            width: 52px;
-            height: 52px;
-            border-radius: 40px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 28px;
-            cursor: pointer;
-            backdrop-filter: blur(5px);
-            transition: 0.2s ease;
-            box-shadow: 0 5px 12px #00000055;
-        }
-
-        .ctrl-btn:hover {
-            background: #25487e;
-            border-color: #86b1ff;
-            color: white;
-            transform: scale(1.05);
-            box-shadow: 0 0 18px #3f93ff;
-        }
-
-        .ctrl-btn:active {
-            transform: scale(0.98);
-        }
-
-        .ctrl-btn.play-pause {
-            width: 68px;
-            height: 68px;
-            background: #1f3e6b;
-            border-color: #acd0ff;
-            font-size: 40px;
-            box-shadow: 0 0 25px #4d8cff;
-        }
-
-        /* 歌词面板 */
-        .lyrics-panel {
-            background: rgba(10, 18, 34, 0.6);
-            border-radius: 30px;
-            padding: 14px 18px;
-            border: 1px solid #3560a0;
-            backdrop-filter: blur(6px);
-            text-align: center;
-            margin-top: 15px;
-        }
-
-        .lyric-text {
-            font-size: 16px;
-            font-style: italic;
-            color: #d3e2ff;
-            min-height: 50px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
             flex-direction: column;
-            line-height: 1.5;
-            text-shadow: 0 0 10px #2680eb;
-            transition: opacity 0.4s;
-        }
-
-        .wave {
-            display: flex;
             align-items: center;
             justify-content: center;
-            gap: 5px;
-            margin-top: 8px;
-            height: 24px;
+            width: 100%;
+            max-width: 400px;
+            padding: 2rem;
         }
-
-        .wave span {
-            width: 5px;
-            height: 16px;
-            background: linear-gradient(to top, #6d9eff, #c0dbff);
-            border-radius: 10px;
-            animation: wave 1.2s infinite ease;
-            opacity: 0.6;
+        
+        .lottery-button {
+            width: 100%;
+            max-width: 300px;
+            height: 120px;
+            font-size: 1.5rem;
+            font-weight: bold;
+            border-radius: 50px;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            box-shadow: 0 10px 25px -5px rgba(59, 130, 246, 0.4), 
+                        0 8px 10px -6px rgba(59, 130, 246, 0.3);
         }
-
-        .wave span:nth-child(2) { animation-delay: 0.2s; height: 22px; }
-        .wave span:nth-child(3) { animation-delay: 0.4s; height: 28px; }
-        .wave span:nth-child(4) { animation-delay: 0.6s; height: 22px; }
-        .wave span:nth-child(5) { animation-delay: 0.8s; height: 16px; }
-
-        @keyframes wave {
-            0%, 100% { transform: scaleY(0.8); opacity: 0.4; }
-            50% { transform: scaleY(1.6); opacity: 1; }
+        
+        .lottery-button:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 25px -5px rgba(59, 130, 246, 0.5), 
+                        0 10px 10px -5px rgba(59, 130, 246, 0.4);
         }
-
-        /* 音频元素隐藏 */
-        #audio-player {
-            display: none;
+        
+        .lottery-button:active {
+            transform: translateY(0);
         }
-
-        .autoplay-note {
-            font-size: 11px;
-            color: #7191c0;
-            text-align: center;
-            margin-top: 15px;
-            border-top: 1px dashed #28508f;
-            padding-top: 12px;
-            opacity: 0.8;
+        
+        .lottery-button::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(
+                to bottom right,
+                rgba(255, 255, 255, 0) 0%,
+                rgba(255, 255, 255, 0.3) 50%,
+                rgba(255, 255, 255, 0) 100%
+            );
+            transform: rotate(45deg);
+            animation: shine 3s infinite;
+        }
+        
+        @keyframes shine {
+            0% {
+                transform: translateX(-100%) rotate(45deg);
+            }
+            100% {
+                transform: translateX(100%) rotate(45deg);
+            }
+        }
+        
+        .dark .lottery-button {
+            box-shadow: 0 10px 25px -5px rgba(30, 64, 175, 0.4), 
+                        0 8px 10px -6px rgba(30, 64, 175, 0.3);
+        }
+        
+        .dark .lottery-button:hover {
+            box-shadow: 0 20px 25px -5px rgba(30, 64, 175, 0.5), 
+                        0 10px 10px -5px rgba(30, 64, 175, 0.4);
+        }
+        
+        /* 模态框动画 */
+        .modal {
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+        
+        .modal-content {
+            transition: transform 0.3s ease;
+        }
+        
+        .modal.hidden .modal-content {
+            transform: scale(0.9);
+        }
+        
+        /* 粒子效果 */
+        .particle {
+            position: absolute;
+            border-radius: 50%;
+            pointer-events: none;
+            opacity: 0;
         }
     </style>
 </head>
-<body>
-    <div class="player">
-        <!-- 唱片封面 -->
-        <div class="artwork">
-            <div class="vinyl" id="vinylDisc">
-                <div class="inner-label">
-                    <span>✨</span>
+<body class="bg-gray-50 dark:bg-dark-background transition-colors duration-300 min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <!-- 顶部导航 -->
+        <header class="flex justify-between items-center mb-8">
+            <div class="flex items-center">
+                <i class="fa fa-gift text-primary dark:text-dark-secondary text-3xl mr-3"></i>
+                <h1 class="text-2xl font-bold text-gray-800 dark:text-white">幸运转盘抽奖</h1>
+            </div>
+            <div class="flex items-center space-x-4">
+                <button id="historyBtn" class="flex items-center px-4 py-2 rounded-lg bg-white dark:bg-dark-card shadow-md hover:shadow-lg transition-all text-gray-700 dark:text-gray-200">
+                    <i class="fa fa-history mr-2"></i>
+                    <span>抽奖记录</span>
+                </button>
+                <button id="themeToggle" class="p-2 rounded-full bg-white dark:bg-dark-card shadow-md hover:shadow-lg transition-all">
+                    <i class="fa fa-moon-o dark:hidden text-gray-700 text-xl"></i>
+                    <i class="fa fa-sun-o hidden dark:block text-yellow-300 text-xl"></i>
+                </button>
+                <a href="admin.html" class="flex items-center px-4 py-2 rounded-lg bg-primary dark:bg-dark-primary hover:bg-accent dark:hover:bg-dark-secondary transition-all text-white">
+                    <i class="fa fa-lock mr-2"></i>
+                    <span>管理后台</span>
+                </a>
+            </div>
+        </header>
+        
+        <!-- 主要内容 -->
+        <main class="flex flex-col md:flex-row items-center justify-center gap-8">
+            <!-- 抽奖按钮区域 -->
+            <div class="flex flex-col items-center">
+                <div class="lottery-button-container bg-white dark:bg-dark-card rounded-2xl shadow-xl p-8 glass">
+                    <h2 class="text-2xl font-bold mb-6 text-center text-gray-800 dark:text-white">幸运抽奖</h2>
+                    <button id="spinBtn" class="lottery-button bg-primary dark:bg-dark-primary hover:bg-accent dark:hover:bg-dark-secondary text-white font-bold rounded-full shadow-lg hover:shadow-xl transition-all transform hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed text-lg flex items-center justify-center">
+                        开始抽奖
+                    </button>
+                    <div class="mt-8 text-center">
+                        <p class="text-gray-600 dark:text-gray-300">剩余抽奖次数: <span id="remainingSpins" class="font-bold text-primary dark:text-dark-secondary">3</span></p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 右侧信息区 - 仅显示概率分布图表 -->
+            <div class="w-full md:w-80">
+                <div class="bg-white dark:bg-dark-card rounded-xl shadow-lg p-6 glass">
+                    <h2 class="text-xl font-bold mb-4 text-gray-800 dark:text-white flex items-center">
+                        <i class="fa fa-pie-chart text-primary dark:text-dark-secondary mr-2"></i>
+                        概率分布
+                    </h2>
+                    <div class="h-64">
+                        <canvas id="probabilityChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+    
+    <!-- 结果模态框 -->
+    <div id="resultModal" class="modal fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-50 hidden">
+        <div class="modal-content bg-white dark:bg-dark-card rounded-xl shadow-2xl p-8 max-w-md w-full mx-4 transform scale-95">
+            <div class="text-center">
+                <div id="resultIcon" class="mx-auto text-6xl mb-4"></div>
+                <h2 id="resultTitle" class="text-2xl font-bold mb-2 text-gray-800 dark:text-white"></h2>
+                <p id="resultMessage" class="text-gray-600 dark:text-gray-300 mb-6"></p>
+                <div class="flex justify-center space-x-4">
+                    <button id="closeResultBtn" class="px-6 py-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-white font-bold rounded-lg transition-all">
+                        关闭
+                    </button>
+                    <button id="shareResultBtn" class="px-6 py-2 bg-primary dark:bg-dark-primary hover:bg-accent dark:hover:bg-dark-secondary text-white font-bold rounded-lg transition-all">
+                        分享结果
+                    </button>
                 </div>
             </div>
         </div>
-
-        <!-- 歌曲信息 -->
-        <div class="track-info">
-            <div class="track-name">星河追梦</div>
-            <div class="artist">星梦轨迹 · 纯享</div>
-        </div>
-
-        <!-- 进度条 -->
-        <div class="progress-area">
-            <div class="time">
-                <span id="current-time">0:00</span>
-                <span id="duration-time">0:00</span>
+    </div>
+    
+    <!-- 抽奖记录模态框 -->
+    <div id="historyModal" class="modal fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-50 hidden">
+        <div class="modal-content bg-white dark:bg-dark-card rounded-xl shadow-2xl p-8 max-w-lg w-full mx-4 transform scale-95 max-h-[80vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold text-gray-800 dark:text-white">抽奖记录</h2>
+                <button id="closeHistoryBtn" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+                    <i class="fa fa-times text-xl"></i>
+                </button>
             </div>
-            <div class="progress-bar" id="progress-bar">
-                <div class="progress-fill" id="progress-fill"></div>
-            </div>
-        </div>
-
-        <!-- 控制按钮 -->
-        <div class="controls">
-            <div class="ctrl-btn" id="prev-btn" title="上一首">⏮</div>
-            <div class="ctrl-btn play-pause" id="play-pause-btn" title="播放/暂停">▶</div>
-            <div class="ctrl-btn" id="next-btn" title="下一首">⏭</div>
-        </div>
-
-        <!-- 动态歌词区 -->
-        <div class="lyrics-panel">
-            <div class="lyric-text" id="lyric-display">
-                星河在倒转，我们追着梦...
-                <div class="wave" id="wave-box">
-                    <span></span><span></span><span></span><span></span><span></span>
+            <div id="historyList" class="space-y-4">
+                <!-- 抽奖记录由JS动态生成 -->
+                <div class="text-center text-gray-500 dark:text-gray-400 py-8">
+                    暂无抽奖记录
                 </div>
             </div>
-        </div>
-
-        <!-- 自动播放提示 -->
-        <div class="autoplay-note" id="autoplay-note">
-            🚀 正在加载音乐...
         </div>
     </div>
 
-    <!-- 音频元素 -->
-    <audio id="audio-player" preload="auto" loop></audio>
-
     <script>
-        (function() {
-            // 获取DOM元素
-            const audio = document.getElementById('audio-player');
-            const vinyl = document.getElementById('vinylDisc');
-            const playPauseBtn = document.getElementById('play-pause-btn');
-            const prevBtn = document.getElementById('prev-btn');
-            const nextBtn = document.getElementById('next-btn');
-            const progressFill = document.getElementById('progress-fill');
-            const progressBar = document.getElementById('progress-bar');
-            const currentTimeSpan = document.getElementById('current-time');
-            const durationSpan = document.getElementById('duration-time');
-            const lyricDisplay = document.getElementById('lyric-display');
-            const waveBox = document.getElementById('wave-box');
-            const autoplayNote = document.getElementById('autoplay-note');
-
-            // 设置音频源 - 使用根目录的 xhzm.mp3
-            const audioUrl = 'xhzm.mp3';
-            audio.src = audioUrl;
-
-            // 歌词库 (根据歌曲意境)
-            const lyrics = [
-                "✨ 星辉洒落 在梦的尽头",
-                "🌌 逆着光 追赶银河的湍流",
-                "🚀 飞船划过 寂静的宇宙",
-                "💫 你的眼眸 是星云的入口",
-                "🎵 星河追梦 不回头",
-                "🌠 每一帧 都是永恒的温柔",
-                "⭐ 穿越光年 只为这一次相遇",
-                "🌟 在星河深处 写下我们的故事"
-            ];
-            let lyricIndex = 0;
-
-            // 播放状态
-            let isPlaying = false;
-
-            // 格式化时间
-            function formatTime(seconds) {
-                if (isNaN(seconds) || seconds === Infinity || seconds < 0) return '0:00';
-                const m = Math.floor(seconds / 60);
-                const s = Math.floor(seconds % 60);
-                return `${m}:${s < 10 ? '0' : ''}${s}`;
+        // 全局变量
+        let prizes = [
+            { id: 1, name: '一等奖', description: 'iPhone 15 Pro', probability: 5, color: '#FF6B6B', icon: 'fa-apple' },
+            { id: 2, name: '二等奖', description: 'AirPods Pro', probability: 10, color: '#4ECDC4', icon: 'fa-headphones' },
+            { id: 3, name: '三等奖', description: '100元京东卡', probability: 15, color: '#45B7D1', icon: 'fa-gift' },
+            { id: 4, name: '四等奖', description: '50元话费', probability: 20, color: '#96CEB4', icon: 'fa-mobile' },
+            { id: 5, name: '五等奖', description: '10元红包', probability: 25, color: '#FFEAA7', icon: 'fa-money' },
+            { id: 6, name: '谢谢参与', description: '再接再厉', probability: 25, color: '#DDA0DD', icon: 'fa-smile-o' }
+        ];
+        
+        let remainingSpins = 3;
+        let spinHistory = JSON.parse(localStorage.getItem('spinHistory')) || [];
+        let isSpinning = false;
+        
+        // DOM 元素
+        const wheelElement = document.getElementById('wheel');
+        const spinButton = document.getElementById('spinBtn');
+        const remainingSpinsElement = document.getElementById('remainingSpins');
+        const prizeListElement = document.getElementById('prizeList');
+        const resultModal = document.getElementById('resultModal');
+        const resultIcon = document.getElementById('resultIcon');
+        const resultTitle = document.getElementById('resultTitle');
+        const resultMessage = document.getElementById('resultMessage');
+        const closeResultBtn = document.getElementById('closeResultBtn');
+        const shareResultBtn = document.getElementById('shareResultBtn');
+        const historyModal = document.getElementById('historyModal');
+        const historyListElement = document.getElementById('historyList');
+        const closeHistoryBtn = document.getElementById('closeHistoryBtn');
+        const historyBtn = document.getElementById('historyBtn');
+        const themeToggle = document.getElementById('themeToggle');
+        
+        // 图表实例
+        let probabilityChart;
+        
+        // 初始化函数
+        function init() {
+            // 检查主题偏好
+            if (localStorage.getItem('theme') === 'dark' || 
+                (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                document.documentElement.classList.add('dark');
+            } else {
+                document.documentElement.classList.remove('dark');
             }
-
-            // 更新进度条和时间
-            function updateProgress() {
-                if (!audio.duration) return;
-                
-                const current = audio.currentTime;
-                const duration = audio.duration;
-                
-                // 更新进度条
-                const percent = (current / duration) * 100;
-                progressFill.style.width = percent + '%';
-                
-                // 更新时间显示
-                currentTimeSpan.textContent = formatTime(current);
-                durationSpan.textContent = formatTime(duration);
-                
-                // 根据时间更新歌词 (每15秒切换一句)
-                const lyricChangeInterval = 15; // 秒
-                const currentLyricIndex = Math.floor(current / lyricChangeInterval) % lyrics.length;
-                if (currentLyricIndex !== lyricIndex) {
-                    lyricIndex = currentLyricIndex;
-                    lyricDisplay.innerHTML = `${lyrics[lyricIndex]} <div class="wave" id="wave-box">${waveBox.innerHTML}</div>`;
+            
+            // 渲染转盘
+            renderWheel();
+            
+            // 渲染奖品列表
+            renderPrizeList();
+            
+            // 初始化概率图表
+            initProbabilityChart();
+            
+            // 渲染抽奖记录
+            renderHistory();
+            
+            // 更新剩余抽奖次数
+            updateRemainingSpins();
+            
+            // 添加事件监听器
+            addEventListeners();
+        }
+        
+        // 渲染转盘 - 由于移除了转盘，此函数为空
+        function renderWheel() {
+            // 不再需要渲染转盘
+        }
+        
+        // 渲染奖品列表 - 由于不需要显示奖品列表，简化此函数
+        function renderPrizeList() {
+            // 不显示奖品列表，保持为空
+            if (prizeListElement) {
+                prizeListElement.innerHTML = '';
+            }
+        }
+        
+        // 初始化概率图表
+        function initProbabilityChart() {
+            const ctx = document.getElementById('probabilityChart').getContext('2d');
+            
+            // 销毁现有图表（如果存在）
+            if (probabilityChart) {
+                probabilityChart.destroy();
+            }
+            
+            probabilityChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: prizes.map(prize => prize.name),
+                    datasets: [{
+                        data: prizes.map(prize => prize.probability),
+                        backgroundColor: prizes.map(prize => prize.color),
+                        borderWidth: 2,
+                        borderColor: document.documentElement.classList.contains('dark') ? '#1e293b' : '#ffffff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                color: document.documentElement.classList.contains('dark') ? '#e2e8f0' : '#475569',
+                                font: {
+                                    size: 11
+                                }
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const label = context.label || '';
+                                    const value = context.raw || 0;
+                                    return `${label}: ${value}%`;
+                                }
+                            }
+                        }
+                    },
+                    cutout: '70%'
                 }
+            });
+        }
+        
+        // 更新剩余抽奖次数
+        function updateRemainingSpins() {
+            remainingSpinsElement.textContent = remainingSpins;
+        }
+        
+        // 渲染抽奖记录
+        function renderHistory() {
+            historyListElement.innerHTML = '';
+            
+            if (spinHistory.length === 0) {
+                historyListElement.innerHTML = `
+                    <div class="text-center text-gray-500 dark:text-gray-400 py-8">
+                        暂无抽奖记录
+                    </div>
+                `;
+                return;
             }
-
-            // 音频加载完成
-            audio.addEventListener('loadedmetadata', () => {
-                durationSpan.textContent = formatTime(audio.duration);
-                autoplayNote.innerHTML = '🎵 星河追梦 · 点击播放';
+            
+            // 按时间倒序排列
+            const sortedHistory = [...spinHistory].reverse();
+            
+            sortedHistory.forEach(record => {
+                const historyItem = document.createElement('div');
+                historyItem.className = 'flex items-center justify-between p-4 rounded-lg bg-gray-50 dark:bg-gray-700';
+                
+                const date = new Date(record.timestamp);
+                const formattedDate = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
+                
+                historyItem.innerHTML = `
+                    <div class="flex items-center">
+                        <div class="w-10 h-10 rounded-full flex items-center justify-center mr-3" style="background-color: ${record.prize.color}">
+                            <i class="fa ${record.prize.icon} text-white"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-gray-800 dark:text-white">${record.prize.name}</h3>
+                            <p class="text-sm text-gray-600 dark:text-gray-300">${formattedDate}</p>
+                        </div>
+                    </div>
+                    <div class="px-3 py-1 rounded-full text-sm font-medium ${record.isWin ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' : 'bg-gray-100 text-gray-800 dark:bg-gray-600 dark:text-gray-200'}">
+                        ${record.isWin ? '中奖' : '未中奖'}
+                    </div>
+                `;
+                
+                historyListElement.appendChild(historyItem);
             });
-
-            // 音频加载失败
-            audio.addEventListener('error', (e) => {
-                console.error('音频加载失败:', e);
-                autoplayNote.innerHTML = '⚠️ 音频加载失败，请检查根目录是否有 xhzm.mp3 文件';
-                autoplayNote.style.color = '#ff9999';
+        }
+        
+        // 抽奖函数 - 简化为直接抽奖，移除转盘旋转动画
+        function spinWheel() {
+            if (remainingSpins <= 0 || isSpinning) return;
+            
+            isSpinning = true;
+            spinButton.disabled = true;
+            spinButton.textContent = '抽奖中...';
+            
+            // 添加按钮动画效果
+            spinButton.classList.add('animate-pulse');
+            
+            // 模拟抽奖过程的延迟
+            setTimeout(() => {
+                // 计算中奖概率
+                const random = Math.random() * 100;
+                let cumulativeProbability = 0;
+                let selectedPrize = null;
+                
+                for (const prize of prizes) {
+                    cumulativeProbability += prize.probability;
+                    if (random <= cumulativeProbability) {
+                        selectedPrize = prize;
+                        break;
+                    }
+                }
+                
+                // 减少抽奖次数
+                remainingSpins--;
+                updateRemainingSpins();
+                
+                // 保存到本地存储
+                localStorage.setItem('remainingSpins', remainingSpins);
+                
+                // 记录抽奖历史
+                const historyRecord = {
+                    prize: selectedPrize,
+                    timestamp: new Date().toISOString(),
+                    isWin: selectedPrize.id !== 6 // 假设ID为6的是"谢谢参与"
+                };
+                
+                spinHistory.push(historyRecord);
+                localStorage.setItem('spinHistory', JSON.stringify(spinHistory));
+                
+                // 更新抽奖记录
+                renderHistory();
+                
+                // 显示结果
+                showResult(selectedPrize);
+                
+                // 重置状态
+                setTimeout(() => {
+                    isSpinning = false;
+                    spinButton.disabled = remainingSpins > 0;
+                    spinButton.textContent = remainingSpins > 0 ? '开始抽奖' : '次数用尽';
+                    spinButton.classList.remove('animate-pulse');
+                }, 500);
+            }, 1500); // 抽奖过程持续1.5秒
+        }
+        
+        // 显示结果
+        function showResult(prize) {
+            // 创建粒子效果
+            createParticles();
+            
+            // 设置结果内容
+            resultIcon.className = `fa ${prize.icon} mx-auto mb-4`;
+            resultIcon.style.color = prize.color;
+            
+            if (prize.id === 6) { // 谢谢参与
+                resultTitle.textContent = prize.name;
+                resultMessage.textContent = prize.description;
+                resultIcon.className += ' text-6xl';
+            } else {
+                resultTitle.textContent = `恭喜获得 ${prize.name}！`;
+                resultMessage.textContent = prize.description;
+                resultIcon.className += ' text-6xl';
+            }
+            
+            // 显示模态框
+            resultModal.classList.remove('hidden');
+            setTimeout(() => {
+                resultModal.querySelector('.modal-content').style.transform = 'scale(1)';
+            }, 10);
+        }
+        
+        // 创建粒子效果 - 修改为以按钮为中心
+        function createParticles() {
+            const colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD'];
+            const particleCount = 50;
+            
+            // 获取抽奖按钮的位置
+            const spinButtonRect = spinButton.getBoundingClientRect();
+            const centerX = spinButtonRect.left + spinButtonRect.width / 2;
+            const centerY = spinButtonRect.top + spinButtonRect.height / 2;
+            
+            for (let i = 0; i < particleCount; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                
+                // 随机大小和颜色
+                const size = Math.random() * 10 + 5;
+                const color = colors[Math.floor(Math.random() * colors.length)];
+                
+                particle.style.width = `${size}px`;
+                particle.style.height = `${size}px`;
+                particle.style.backgroundColor = color;
+                
+                // 设置粒子位置（以按钮为中心）
+                particle.style.left = `${centerX}px`;
+                particle.style.top = `${centerY}px`;
+                
+                document.body.appendChild(particle);
+                
+                // 随机动画
+                const duration = Math.random() * 2 + 1;
+                const angle = Math.random() * Math.PI * 2;
+                const distance = Math.random() * 100 + 50;
+                
+                const finalX = centerX + Math.cos(angle) * distance;
+                const finalY = centerY + Math.sin(angle) * distance;
+                
+                // 使用GSAP动画
+                gsap.to(particle, {
+                    x: finalX - centerX,
+                    y: finalY - centerY,
+                    opacity: 1,
+                    duration: duration * 0.3,
+                    ease: "power1.out",
+                    onComplete: () => {
+                        gsap.to(particle, {
+                            opacity: 0,
+                            duration: duration * 0.7,
+                            ease: "power1.in",
+                            onComplete: () => {
+                                document.body.removeChild(particle);
+                            }
+                        });
+                    }
+                });
+            }
+        }
+        
+        // 添加事件监听器
+        function addEventListeners() {
+            // 抽奖按钮
+            spinButton.addEventListener('click', spinWheel);
+            
+            // 关闭结果模态框
+            closeResultBtn.addEventListener('click', () => {
+                resultModal.querySelector('.modal-content').style.transform = 'scale(0.9)';
+                setTimeout(() => {
+                    resultModal.classList.add('hidden');
+                }, 300);
             });
-
-            // 时间更新
-            audio.addEventListener('timeupdate', updateProgress);
-
-            // 播放状态变化
-            audio.addEventListener('play', () => {
-                isPlaying = true;
-                playPauseBtn.innerHTML = '⏸';
-                vinyl.classList.add('playing');
-                waveBox.style.display = 'flex';
-                autoplayNote.innerHTML = '🎵 正在播放：星河追梦';
-            });
-
-            audio.addEventListener('pause', () => {
-                isPlaying = false;
-                playPauseBtn.innerHTML = '▶';
-                vinyl.classList.remove('playing');
-                waveBox.style.display = 'none';
-                autoplayNote.innerHTML = '⏸ 已暂停';
-            });
-
-            // 点击播放/暂停
-            playPauseBtn.addEventListener('click', () => {
-                if (audio.paused) {
-                    // 尝试播放
-                    audio.play().catch(error => {
-                        console.error('播放失败:', error);
-                        autoplayNote.innerHTML = '❌ 播放失败，请检查音频文件';
+            
+            // 分享结果按钮
+            shareResultBtn.addEventListener('click', () => {
+                const text = `我在幸运转盘中抽到了${resultTitle.textContent}！快来试试你的运气吧！`;
+                
+                if (navigator.share) {
+                    navigator.share({
+                        title: '幸运转盘抽奖',
+                        text: text,
+                        url: window.location.href
                     });
                 } else {
-                    audio.pause();
-                }
-            });
-
-            // 上一首（重置到开头）
-            prevBtn.addEventListener('click', () => {
-                audio.currentTime = 0;
-                lyricIndex = 0;
-                lyricDisplay.innerHTML = `${lyrics[0]} <div class="wave" id="wave-box">${waveBox.innerHTML}</div>`;
-            });
-
-            // 下一首（重置到开头）
-            nextBtn.addEventListener('click', () => {
-                audio.currentTime = 0;
-                lyricIndex = 0;
-                lyricDisplay.innerHTML = `${lyrics[0]} <div class="wave" id="wave-box">${waveBox.innerHTML}</div>`;
-            });
-
-            // 点击进度条跳转
-            progressBar.addEventListener('click', (e) => {
-                const rect = progressBar.getBoundingClientRect();
-                const clickX = e.clientX - rect.left;
-                const percent = clickX / rect.width;
-                audio.currentTime = percent * audio.duration;
-            });
-
-            // 自动播放尝试（一进入页面就尝试播放）
-            window.addEventListener('load', () => {
-                // 设置初始歌词
-                lyricDisplay.innerHTML = `${lyrics[0]} <div class="wave" id="wave-box">${waveBox.innerHTML}</div>`;
-                
-                // 尝试自动播放
-                setTimeout(() => {
-                    audio.play().then(() => {
-                        autoplayNote.innerHTML = '🎵 自动播放成功：星河追梦';
-                    }).catch(error => {
-                        console.log('自动播放被阻止，等待用户交互:', error);
-                        autoplayNote.innerHTML = '🎵 点击播放按钮开始欣赏《星河追梦》';
-                        
-                        // 提示用户点击任意位置播放（可选）
-                        const clickToPlay = () => {
-                            audio.play().catch(e => console.log('用户交互播放失败:', e));
-                            document.removeEventListener('click', clickToPlay);
-                            document.removeEventListener('touchstart', clickToPlay);
-                        };
-                        document.addEventListener('click', clickToPlay);
-                        document.addEventListener('touchstart', clickToPlay);
+                    // 复制到剪贴板
+                    navigator.clipboard.writeText(text).then(() => {
+                        alert('分享内容已复制到剪贴板！');
                     });
-                }, 500);
-            });
-
-            // 显示缓冲状态
-            audio.addEventListener('waiting', () => {
-                autoplayNote.innerHTML = '⏳ 缓冲中...';
-            });
-
-            audio.addEventListener('canplay', () => {
-                if (!audio.paused) {
-                    autoplayNote.innerHTML = '🎵 正在播放：星河追梦';
                 }
             });
-        })();
+            
+            // 历史记录按钮
+            historyBtn.addEventListener('click', () => {
+                historyModal.classList.remove('hidden');
+                setTimeout(() => {
+                    historyModal.querySelector('.modal-content').style.transform = 'scale(1)';
+                }, 10);
+            });
+            
+            // 关闭历史记录模态框
+            closeHistoryBtn.addEventListener('click', () => {
+                historyModal.querySelector('.modal-content').style.transform = 'scale(0.9)';
+                setTimeout(() => {
+                    historyModal.classList.add('hidden');
+                }, 300);
+            });
+            
+            // 主题切换
+            themeToggle.addEventListener('click', () => {
+                // 切换主题类
+                document.documentElement.classList.toggle('dark');
+                
+                // 保存主题偏好
+                const isDark = document.documentElement.classList.contains('dark');
+                localStorage.setItem('theme', isDark ? 'dark' : 'light');
+                
+                // 更新图表
+                initProbabilityChart();
+                
+                // 强制重新渲染以确保所有样式生效
+                setTimeout(() => {
+                    document.body.style.display = 'none';
+                    document.body.offsetHeight; // 触发重排
+                    document.body.style.display = '';
+                }, 10);
+            });
+            
+            // 点击模态框背景关闭
+            resultModal.addEventListener('click', (e) => {
+                if (e.target === resultModal) {
+                    closeResultBtn.click();
+                }
+            });
+            
+            historyModal.addEventListener('click', (e) => {
+                if (e.target === historyModal) {
+                    closeHistoryBtn.click();
+                }
+            });
+            
+            // 键盘事件
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') {
+                    if (!resultModal.classList.contains('hidden')) {
+                        closeResultBtn.click();
+                    }
+                    if (!historyModal.classList.contains('hidden')) {
+                        closeHistoryBtn.click();
+                    }
+                }
+            });
+        }
+        
+        // 从本地存储加载数据
+        function loadFromLocalStorage() {
+            // 加载系统设置
+            const savedSettings = localStorage.getItem('settings');
+            let maxSpins = 3; // 默认值
+            
+            if (savedSettings) {
+                const settings = JSON.parse(savedSettings);
+                maxSpins = settings.maxSpins || 3;
+            }
+            
+            // 加载奖品数据
+            const savedPrizes = localStorage.getItem('prizes');
+            if (savedPrizes) {
+                prizes = JSON.parse(savedPrizes);
+            }
+            
+            // 加载剩余抽奖次数
+            const savedRemainingSpins = localStorage.getItem('remainingSpins');
+            if (savedRemainingSpins !== null) {
+                remainingSpins = parseInt(savedRemainingSpins);
+                // 确保剩余次数不超过最大次数
+                if (remainingSpins > maxSpins) {
+                    remainingSpins = maxSpins;
+                    localStorage.setItem('remainingSpins', remainingSpins);
+                }
+            } else {
+                // 如果没有保存的剩余次数，设置为最大值
+                remainingSpins = maxSpins;
+                localStorage.setItem('remainingSpins', remainingSpins);
+            }
+            
+            // 加载抽奖历史
+            const savedHistory = localStorage.getItem('spinHistory');
+            if (savedHistory) {
+                spinHistory = JSON.parse(savedHistory);
+            }
+        }
+        
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', () => {
+            loadFromLocalStorage();
+            init();
+        });
     </script>
 </body>
 </html>
